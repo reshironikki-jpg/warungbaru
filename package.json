@@ -1,0 +1,12 @@
+{
+  "name": "my-warung-app",
+  "version": "1.0.0",
+  "description": "Aplikasi Warung Node.js + Vercel + Firebase",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.0"
+  }
+}

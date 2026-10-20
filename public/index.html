@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Warung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-6 max-w-2xl">
+        <h1 class="text-3xl font-bold text-center mb-6 text-blue-600">🏪 Kasir & Stok Warung</h1>
+
+        <!-- Form Tambah Produk -->
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-3">Tambah Menu / Barang</h2>
+            <form id="productForm" class="space-y-3">
+                <input type="text" id="name" placeholder="Nama Barang" required class="w-full p-2 border rounded">
+                <input type="number" id="price" placeholder="Harga (Rp)" required class="w-full p-2 border rounded">
+                <input type="number" id="stock" placeholder="Stok" required class="w-full p-2 border rounded">
+                <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Simpan Barang</button>
+            </form>
+        </div>
+
+        <!-- Daftar Produk -->
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-3">Daftar Barang Warung</h2>
+            <div id="productList" class="space-y-2">
+                <p class="text-gray-500">Memuat data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchProducts() {
+            try {
+                const res = await fetch('/api/products');
+                const result = await res.json();
+                const listEl = document.getElementById('productList');
+                
+                if (result.success && result.data.length > 0) {
+                    listEl.innerHTML = result.data.map(item => `
+                        <div class="flex justify-between items-center border-b p-2">
+                            <div>
+                                <h3 class="font-bold">${item.name}</h3>
+                                <p class="text-sm text-gray-600">Stok: ${item.stock}</p>
+                            </div>
+                            <span class="text-green-600 font-semibold">Rp ${item.price.toLocaleString()}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    listEl.innerHTML = '<p class="text-gray-500">Belum ada barang di warung.</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('productList').innerHTML = '<p class="text-red-500">Gagal memuat data.</p>';
+            }
+        }
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const price = document.getElementById('price').value;
+            const stock = document.getElementById('stock').value;
+
+            const res = await fetch('/api/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, price, stock })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                document.getElementById('productForm').reset();
+                fetchProducts();
+            } else {
+                alert('Gagal menambah produk: ' + result.message);
+            }
+        });
+
+        fetchProducts();
+    </script>
+</body>
+</html>
