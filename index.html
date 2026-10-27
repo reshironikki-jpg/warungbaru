@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Warung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-6 max-w-2xl">
+        <h1 class="text-3xl font-bold text-center mb-6 text-blue-600">🏪 Kasir & Stok Warung</h1>
+
+        <!-- Form Tambah Produk -->
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-3">Tambah Menu / Barang</h2>
+            <form id="productForm" class="space-y-3">
+                <input type="text" id="name" placeholder="Nama Barang" required class="w-full p-2 border rounded">
+                <input type="number" id="price" placeholder="Harga (Rp)" required class="w-full p-2 border rounded">
+                <input type="number" id="stock" placeholder="Stok" required class="w-full p-2 border rounded">
+                <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Simpan Barang</button>
+            </form>
+        </div>
+
+        <!-- Daftar Produk -->
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-3">Daftar Barang Warung</h2>
+            <div id="productList" class="space-y-2">
+                <p class="text-gray-500">Memuat data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
+        }
+
+        // Membaca respons sebagai JSON. Kalau server membalas HTML (mis. 404/500
+        // dari Vercel), kita lempar error jelas, bukan SyntaxError yang membingungkan.
+        async function readJson(res) {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('server membalas bukan JSON (HTTP ' + res.status + ')');
+            }
+        }
+
+        async function fetchProducts() {
+            const listEl = document.getElementById('productList');
+            try {
+                const res = await fetch('/api/products');
+                const result = await readJson(res);
+
+                if (!res.ok || !result.success) {
+                    const reason = (result && (result.error || result.message)) || ('HTTP ' + res.status);
+                    listEl.innerHTML = '<p class="text-red-500">Gagal memuat data: ' + escapeHtml(reason) + '</p>';
+                    return;
+                }
+
+                if (result.data && result.data.length > 0) {
+                    listEl.innerHTML = result.data.map(item => `
+                        <div class="flex justify-between items-center border-b p-2">
+                            <div>
+                                <h3 class="font-bold">${escapeHtml(item.name)}</h3>
+                                <p class="text-sm text-gray-600">Stok: ${escapeHtml(item.stock)}</p>
+                            </div>
+                            <span class="text-green-600 font-semibold">Rp ${Number(item.price || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    listEl.innerHTML = '<p class="text-gray-500">Belum ada barang di warung.</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                listEl.innerHTML = '<p class="text-red-500">Gagal memuat data: ' + escapeHtml(err.message) + '</p>';
+            }
+        }
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const price = document.getElementById('price').value;
+            const stock = document.getElementById('stock').value;
+
+            try {
+                const res = await fetch('/api/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, stock })
+                });
+
+                const result = await readJson(res);
+                if (res.ok && result.success) {
+                    document.getElementById('productForm').reset();
+                    fetchProducts();
+                } else {
+                    alert('Gagal menambah produk: ' + ((result && (result.message || result.error)) || ('HTTP ' + res.status)));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Gagal menambah produk: ' + err.message);
+            }
+        });
+
+        fetchProducts();
+    </script>
+</body>
+</html>
